@@ -1,3 +1,5 @@
+from typing import Any
+from typing import Dict
 from typing import List
 
 import marshmallow as ma
@@ -29,6 +31,14 @@ class Games(MethodView):
     def get(self) -> List[Game]:
         """Return a list of Games from the database as a JSON document."""
         return Game.query.all()
+
+    @blp.arguments(GameSchema(exclude=["state"]))
+    @blp.response(200, GameSchema)
+    def post(self, game_data: Dict[str, Any]) -> Game:
+        _ = game_data  # TODO: unused for now
+        game = Game()
+        game.save()
+        return game
 
 
 def init_app(app: Flask) -> None:

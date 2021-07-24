@@ -53,3 +53,15 @@ def test_get_list_of_games(client: FlaskClient, games: List[Game]) -> None:
     """The JSON response should contain a list of serialized games."""
     response = client.get("/api/games")
     assert response.json == [{"id": game.id, "state": game.state} for game in games]
+
+
+def test_post_new_game(client: FlaskClient) -> None:
+    """When the games endpoint receives a POST request, save a new Game to the database
+    and return it in the response."""
+    response = client.post("/api/games", json={})
+    assert response.status_code == 200
+
+    game, *additional_games = Game.query.all()
+    assert not additional_games  # there should only be one game
+
+    assert response.json == {"id": game.id, "state": game.state}
