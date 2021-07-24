@@ -18,19 +18,19 @@ allow two players to enter their names, and automatically assign one of them the
 indicate when one of the players has won, or the game is a draw
 In addition to implementing basic gameplay, the user must be able to save their game to the server.
 
-Since this is a coding challenge, the success of your mission depends on building a good rest API implementation. 
+Since this is a coding challenge, the success of your mission depends on building a good rest API implementation.
 
 Make sure to provide instruction about how to setup, run and consume your REST API.
 
 ## Technologies
 
-You can use any REST framework you prefer to implement the API (Flask, Tornado, etc.) 
+You can use any REST framework you prefer to implement the API (Flask, Tornado, etc.)
 
 Game data structure
 A game consists of:
 
 two players, represented by their names as strings
-a board data structure (we are leaving you the choice of what data structure is more appropriate for the task). Keep in mind that this data structure needs to trak the status of each board element. Each element is null if the square is blank, or either 0 or 1 to indicate which player controls the square. 
+a board data structure (we are leaving you the choice of what data structure is more appropriate for the task). Keep in mind that this data structure needs to trak the status of each board element. Each element is null if the square is blank, or either 0 or 1 to indicate which player controls the square.
 
 Server API
 The server should complies with the JSON API specification.
