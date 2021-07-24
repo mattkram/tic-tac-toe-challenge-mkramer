@@ -9,6 +9,7 @@ python = "^3.8"
 dash = "^1.21.0"
 dash-bootstrap-components = "^0.12.2"
 flask-smorest = "^0.31.2"
+Flask-SQLAlchemy = "^2.5.1"
 
 [tool.poetry.dev-dependencies]
 black = "^21.7b0"
