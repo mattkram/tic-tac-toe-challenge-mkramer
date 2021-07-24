@@ -27,4 +27,8 @@ def create_app(config: Dict[str, Any] = None) -> Flask:
 
     db.init_app(app)
 
+    from . import api
+
+    api.init_app(app)
+
     return app
