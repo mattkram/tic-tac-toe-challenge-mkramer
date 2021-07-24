@@ -1,0 +1,15 @@
+# Temporary files
+*.swp
+.DS_store
+
+# Virtual environment
+venv/
+.venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# mypy
+.mypy_cache/

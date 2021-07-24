@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "tic-tac-toe-challenge-mkramer"
+version = "0.1.0"
+description = ""
+authors = ["Matt Kramer <matthew.robert.kramer@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+dash = "^1.21.0"
+dash-bootstrap-components = "^0.12.2"
+flask-smorest = "^0.31.2"
+
+[tool.poetry.dev-dependencies]
+pre-commit = "^2.13.0"
+pytest = "^6.2.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
