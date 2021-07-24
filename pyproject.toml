@@ -11,6 +11,7 @@ dash-bootstrap-components = "^0.12.2"
 flask-smorest = "^0.31.2"
 
 [tool.poetry.dev-dependencies]
+black = "^21.7b0"
 pre-commit = "^2.13.0"
 pytest = "^6.2.4"
 
