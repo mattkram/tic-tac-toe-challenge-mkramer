@@ -19,6 +19,8 @@ def test_save_game(game: Game) -> None:
     """The game has been saved to the database and retrieved."""
     assert game.id == 1
     assert game.state == NULL_CHAR * 9
+    assert game.player_x is not None
+    assert game.player_o is not None
 
 
 def test_delete_game(game: Game) -> None:
