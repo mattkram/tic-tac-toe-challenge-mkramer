@@ -90,7 +90,11 @@ class GameByID(MethodView):
         if game is None:
             return abort(404)
 
-        game.state = data["state"]
+        try:
+            game.state = data["state"]
+        except ValueError as err:
+            return abort(418, str(err))
+
         game.save()
         return game
 

@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 from typing import Any
 from typing import List
 
@@ -54,7 +55,7 @@ class Game(db.Model):  # type: ignore
     """
 
     id = db.Column(db.Integer, primary_key=True)
-    state = db.Column(db.String(9))
+    _state = db.Column("state", db.String(9))
 
     player_x_id = db.Column(db.Integer, db.ForeignKey("player.id"), nullable=False)
     player_o_id = db.Column(db.Integer, db.ForeignKey("player.id"), nullable=False)
@@ -65,6 +66,21 @@ class Game(db.Model):  # type: ignore
     def __init__(self, *, players: List[str] = None):
         self.state = NULL_CHAR * 9
         self.player_names = players or []
+
+    @property
+    def state(self) -> str:
+        """The board state. Validate on setting."""
+        return self._state
+
+    @state.setter
+    def state(self, value: Any) -> None:
+        if not isinstance(value, str):
+            raise TypeError("state must be set to a string.")
+
+        if self._state is not None:
+            _validate_state(old=self._state, new=value)
+
+        self._state = value
 
     def _assign_players(self) -> None:
         """Assign players to the game, randomly choosing which is "X" an which "O".
@@ -92,6 +108,32 @@ class Game(db.Model):  # type: ignore
         if self.player_x_id is None:
             self._assign_players()
         super().save()
+
+
+def _validate_state(old: str, new: str) -> None:
+    """Validate the board state update.
+
+    Raises:
+        ValueError: if not allowed.
+
+    """
+    changed = [o != n for o, n in zip(old, new)]
+    if sum(changed) != 1:
+        raise ValueError("More than one value has changed")
+
+    for o, n in zip(old, new):
+        if o != NULL_CHAR and o != n:
+            raise ValueError("We have somehow undone an existing cell")
+
+    old_counts = Counter(old)
+    new_counts = Counter(new)
+
+    if (old_counts[X_CHAR] + old_counts[O_CHAR]) % 2 == 1:
+        if new_counts[X_CHAR] != old_counts[X_CHAR]:
+            raise ValueError("It is O's turn!")
+    else:
+        if new_counts[O_CHAR] != old_counts[O_CHAR]:
+            raise ValueError("It is X's turn!")
 
 
 def init_app(app: Flask) -> None:

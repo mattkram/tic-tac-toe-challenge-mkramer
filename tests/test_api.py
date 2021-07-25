@@ -50,7 +50,7 @@ def games() -> Generator[List[Game], None, None]:
     games = []
     for _ in range(num_games):
         game = Game()
-        game.state = make_random_game()
+        game._state = make_random_game()
         game.save()
         games.append(game)
 
@@ -88,7 +88,7 @@ def test_post_new_game_bad_request(client: FlaskClient) -> None:
 
 
 @pytest.fixture()
-def game(games: List[Game]) -> Generator[Game, None, None]:
+def game() -> Generator[Game, None, None]:
     """Create a single game."""
     game = Game()
     game.save()
@@ -112,6 +112,7 @@ def test_get_nonexistant_game_by_id_raises_404(client: FlaskClient) -> None:
 
 
 def test_post_update_game_state(client: FlaskClient, game: Game) -> None:
+    """We can update the game state via POST request."""
     state = "X........"
     response = client.post(
         f"/api/games/{game.id}",
@@ -123,3 +124,35 @@ def test_post_update_game_state(client: FlaskClient, game: Game) -> None:
     assert response.status_code == 200
     assert response.json == game_to_dict(game)
     assert response.json["state"] == state
+
+
+@pytest.mark.parametrize(
+    "initial_state,illegal_state",
+    [
+        ("X........", "XX......."),  # X moves twice in a row
+        ("XO.......", "XOO......"),  # O moves twice in a row
+        ("X........", ".XO......"),  # got rid of an existing X
+        ("X........", "........."),  # changed one cell
+        ("X........", "XOX......"),  # more than one move
+    ],
+)
+def test_post_illegal_update_game_state(
+    client: FlaskClient, game: Game, initial_state: str, illegal_state: str
+) -> None:
+    """We can't allow clients to POST illegal moves, because that's cheating and cheating is bad.
+
+    (mmmkay)
+
+    Instead, raise a snarky 418 error :).
+
+    """
+    game._state = initial_state
+    game.save()
+
+    response = client.post(
+        f"/api/games/{game.id}",
+        json={
+            "state": illegal_state,
+        },
+    )
+    assert response.status_code == 418
