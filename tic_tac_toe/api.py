@@ -68,8 +68,13 @@ class Games(MethodView):
 
 
 def init_app(app: Flask) -> None:
-    app.config["API_TITLE"] = "Tic-Tac-Toe API"
-    app.config["API_VERSION"] = "v1"
-    app.config["OPENAPI_VERSION"] = "3.0.2"
+    app.config.update(
+        API_TITLE="Tic-Tac-Toe API",
+        API_VERSION="v1",
+        OPENAPI_VERSION="3.0.2",
+        OPENAPI_URL_PREFIX="/api/docs",
+        OPENAPI_SWAGGER_UI_PATH="",
+        OPENAPI_SWAGGER_UI_URL="https://cdn.jsdelivr.net/npm/swagger-ui-dist/",
+    )
     api.init_app(app)
     api.register_blueprint(blp)
