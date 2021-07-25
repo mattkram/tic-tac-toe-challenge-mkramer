@@ -21,8 +21,15 @@ blp = Blueprint(
 
 
 class GameSchema(ma.Schema):
+    """The primary schema for data transfer between front- and back-end."""
+
     id = ma.fields.Int(dump_only=True)
     state = ma.fields.String()
+    player = ma.fields.Method("get_player_name_map")
+
+    def get_player_name_map(self, game: Game) -> Dict[str, str]:
+        """Return a mapping of the assigned symbol to the player name."""
+        return {"X": game.player_x.name, "O": game.player_o.name}
 
 
 @blp.route("/games")

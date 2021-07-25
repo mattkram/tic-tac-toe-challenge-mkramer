@@ -1,4 +1,6 @@
 import random
+from typing import Any
+from typing import Dict
 from typing import Generator
 from typing import List
 
@@ -32,6 +34,15 @@ def make_random_game() -> str:
     return "".join(random.sample([O_CHAR, X_CHAR, NULL_CHAR], 1)[0] for _ in range(9))
 
 
+def game_to_dict(game: Game) -> Dict[str, Any]:
+    """Manually serialize a game, as a check against the Marshmallow schema."""
+    return {
+        "id": game.id,
+        "state": game.state,
+        "player": {X_CHAR: game.player_x.name, O_CHAR: game.player_o.name},
+    }
+
+
 @pytest.fixture()
 def games() -> Generator[List[Game], None, None]:
     """Create several random games and store them in the database."""
@@ -52,7 +63,7 @@ def games() -> Generator[List[Game], None, None]:
 def test_get_list_of_games(client: FlaskClient, games: List[Game]) -> None:
     """The JSON response should contain a list of serialized games."""
     response = client.get("/api/games")
-    assert response.json == [{"id": game.id, "state": game.state} for game in games]
+    assert response.json == [game_to_dict(game) for game in games]
 
 
 def test_post_new_game(client: FlaskClient) -> None:
@@ -64,4 +75,4 @@ def test_post_new_game(client: FlaskClient) -> None:
     game, *additional_games = Game.query.all()
     assert not additional_games  # there should only be one game
 
-    assert response.json == {"id": game.id, "state": game.state}
+    assert response.json == game_to_dict(game)
