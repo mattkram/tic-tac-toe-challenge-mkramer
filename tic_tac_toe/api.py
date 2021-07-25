@@ -1,8 +1,8 @@
-from typing import Any
 from typing import Dict
 from typing import List
 
 import marshmallow as ma
+from flask import abort
 from flask import Flask
 from flask.views import MethodView
 from flask_smorest import Api
@@ -18,6 +18,12 @@ blp = Blueprint(
     url_prefix="/api",
     description="API for Tic-Tac-Toe gameplay",
 )
+
+
+class GameCreateSchema(ma.Schema):
+    """Schema used for handling POST request creating a new game."""
+
+    players = ma.fields.List(ma.fields.String())
 
 
 class GameSchema(ma.Schema):
@@ -39,12 +45,23 @@ class Games(MethodView):
         """Return a list of Games from the database as a JSON document."""
         return Game.query.all()
 
-    @blp.arguments(GameSchema(exclude=["state"]))
+    @blp.arguments(GameCreateSchema())
     @blp.response(200, GameSchema)
-    def post(self, game_data: Dict[str, Any]) -> Game:
-        _ = game_data  # TODO: unused for now
-        game = Game()
-        game.save()
+    def post(self, data: Dict[str, List[str]]) -> Game:
+        """On POST request, create a new game.
+
+        The POST request can receive an optional payload dictionary with form
+        {"players": ["Player 1", "Player 2"]} to associate the game with known players.
+
+        Otherwise, if no payload is provided, random player names will be created and used.
+
+        """
+        player_names = data.get("players")
+        game = Game(players=player_names)
+        try:
+            game.save()
+        except ValueError as err:
+            abort(422, str(err))
         return game
 
 

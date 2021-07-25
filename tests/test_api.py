@@ -69,10 +69,19 @@ def test_get_list_of_games(client: FlaskClient, games: List[Game]) -> None:
 def test_post_new_game(client: FlaskClient) -> None:
     """When the games endpoint receives a POST request, save a new Game to the database
     and return it in the response."""
-    response = client.post("/api/games", json={})
+    response = client.post("/api/games", json={"players": ["Matt", "Bob"]})
     assert response.status_code == 200
 
     game, *additional_games = Game.query.all()
     assert not additional_games  # there should only be one game
 
     assert response.json == game_to_dict(game)
+
+    # The names of the players in the response should be the same as from the JSON payload
+    assert set(response.json["player"].values()) == {"Matt", "Bob"}
+
+
+def test_post_new_game_bad_request(client: FlaskClient) -> None:
+    """If too many names are provided, raise a 422 error."""
+    response = client.post("/api/games", json={"players": ["Matt", "Bob", "Tim"]})
+    assert response.status_code == 422
