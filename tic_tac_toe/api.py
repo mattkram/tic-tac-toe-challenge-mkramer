@@ -9,6 +9,8 @@ from flask_smorest import Api
 from flask_smorest import Blueprint
 
 from tic_tac_toe.db import Game
+from tic_tac_toe.db import O_CHAR
+from tic_tac_toe.db import X_CHAR
 
 api = Api()
 
@@ -35,7 +37,7 @@ class GameSchema(ma.Schema):
 
     def get_player_name_map(self, game: Game) -> Dict[str, str]:
         """Return a mapping of the assigned symbol to the player name."""
-        return {"X": game.player_x.name, "O": game.player_o.name}
+        return {X_CHAR: game.player_x.name, O_CHAR: game.player_o.name}
 
 
 @blp.route("/games")
