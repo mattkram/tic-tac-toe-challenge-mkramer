@@ -1,6 +1,7 @@
 import random
 from collections import Counter
 from typing import Any
+from typing import Dict
 from typing import List
 
 from flask import Flask
@@ -81,6 +82,11 @@ class Game(db.Model):  # type: ignore
             _validate_state(old=self._state, new=value)
 
         self._state = value
+
+    @property
+    def _player_name_map(self) -> Dict[str, str]:
+        """Return a mapping of position to player name."""
+        return {X_CHAR: self.player_x.name, O_CHAR: self.player_o.name}
 
     def _assign_players(self) -> None:
         """Assign players to the game, randomly choosing which is "X" an which "O".

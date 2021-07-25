@@ -10,8 +10,6 @@ from flask_smorest import Api
 from flask_smorest import Blueprint
 
 from tic_tac_toe.db import Game
-from tic_tac_toe.db import O_CHAR
-from tic_tac_toe.db import X_CHAR
 
 api = Api()
 
@@ -23,27 +21,41 @@ blp = Blueprint(
 )
 
 
-class GameCreateSchema(ma.Schema):
+class CreateGameSchema(ma.Schema):
     """Schema used for handling POST request creating a new game."""
 
     players = ma.fields.List(ma.fields.String())
 
 
-class GameSchema(ma.Schema):
-    """The primary schema for data transfer between front- and back-end."""
+class AssignedPlayersSchema(ma.Schema):
+    """Schema to represent which player is assigned to which position."""
+
+    X = ma.fields.String()
+    O = ma.fields.String()  # noqa: E741
+
+
+class _GameSchemaBase(ma.Schema):
+    """Common fields for Game serialization."""
 
     id = ma.fields.Int(dump_only=True)
     state = ma.fields.String()
-    player = ma.fields.Method(
-        "get_player_name_map", "set_player_name_map", dump_only=True
+
+
+class GameSchema(_GameSchemaBase):
+    """The primary schema for data transfer between front- and back-end."""
+
+    _player_name_map = ma.fields.Nested(
+        AssignedPlayersSchema,
+        data_key="player",
+        dump_only=True,
     )
 
-    def get_player_name_map(self, game: Game) -> Dict[str, str]:
-        """Return a mapping of the assigned symbol to the player name."""
-        return {X_CHAR: game.player_x.name, O_CHAR: game.player_o.name}
 
-    def set_player_name_map(self, data: Any) -> None:
-        """Do nothing when attempting to set the players after initialization."""
+class UpdateGameSchema(_GameSchemaBase):
+    """Specialized schema for game update, which ignores  extra fields passed in besides state."""
+
+    class Meta:
+        unknown = ma.EXCLUDE
 
 
 @blp.route("/games")
@@ -53,7 +65,7 @@ class Games(MethodView):
         """Return a list of Games from the database as a JSON document."""
         return Game.query.all()
 
-    @blp.arguments(GameCreateSchema())
+    @blp.arguments(CreateGameSchema())
     @blp.response(200, GameSchema)
     def post(self, data: Dict[str, List[str]]) -> Game:
         """On POST request, create a new game.
@@ -83,7 +95,7 @@ class GameByID(MethodView):
             return abort(404)
         return game
 
-    @blp.arguments(GameSchema())
+    @blp.arguments(UpdateGameSchema())
     @blp.response(200, GameSchema())
     def post(self, data: Dict[str, Any], *, game_id: int) -> Game:
         game = Game.query.get(game_id)
