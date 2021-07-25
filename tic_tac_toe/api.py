@@ -67,6 +67,17 @@ class Games(MethodView):
         return game
 
 
+@blp.route("/games/<int:game_id>")
+class GameByID(MethodView):
+    @blp.response(200, GameSchema())
+    def get(self, game_id: int) -> Game:
+        """Return a specific Game from the database as a JSON document."""
+        game = Game.query.get(game_id)
+        if game is None:
+            return abort(404)
+        return game
+
+
 def init_app(app: Flask) -> None:
     app.config.update(
         API_TITLE="Tic-Tac-Toe API",

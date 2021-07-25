@@ -85,3 +85,22 @@ def test_post_new_game_bad_request(client: FlaskClient) -> None:
     """If too many names are provided, raise a 422 error."""
     response = client.post("/api/games", json={"players": ["Matt", "Bob", "Tim"]})
     assert response.status_code == 422
+
+
+@pytest.fixture()
+def game(games: List[Game]) -> Game:
+    """Retrieve a single game."""
+    return games[0]
+
+
+def test_get_game_by_id(client: FlaskClient, game: Game) -> None:
+    """Check the API return for retrieval of a game by ID."""
+    response = client.get(f"/api/games/{game.id}")
+    assert response.status_code == 200
+    assert response.json == game_to_dict(game)
+
+
+def test_get_nonexistant_game_by_id_raises_404(client: FlaskClient) -> None:
+    """We get a 404 error if the game doesn't exist."""
+    response = client.get("/api/games/1000")
+    assert response.status_code == 404
