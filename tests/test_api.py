@@ -88,9 +88,14 @@ def test_post_new_game_bad_request(client: FlaskClient) -> None:
 
 
 @pytest.fixture()
-def game(games: List[Game]) -> Game:
-    """Retrieve a single game."""
-    return games[0]
+def game(games: List[Game]) -> Generator[Game, None, None]:
+    """Create a single game."""
+    game = Game()
+    game.save()
+
+    yield game
+
+    game.delete()
 
 
 def test_get_game_by_id(client: FlaskClient, game: Game) -> None:
@@ -104,3 +109,17 @@ def test_get_nonexistant_game_by_id_raises_404(client: FlaskClient) -> None:
     """We get a 404 error if the game doesn't exist."""
     response = client.get("/api/games/1000")
     assert response.status_code == 404
+
+
+def test_post_update_game_state(client: FlaskClient, game: Game) -> None:
+    state = "X........"
+    response = client.post(
+        f"/api/games/{game.id}",
+        json={
+            "player": ["Whatever", "Doesn't", "Matter"],
+            "state": state,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json == game_to_dict(game)
+    assert response.json["state"] == state

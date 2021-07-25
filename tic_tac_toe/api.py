@@ -1,3 +1,4 @@
+from typing import Any
 from typing import Dict
 from typing import List
 
@@ -33,11 +34,16 @@ class GameSchema(ma.Schema):
 
     id = ma.fields.Int(dump_only=True)
     state = ma.fields.String()
-    player = ma.fields.Method("get_player_name_map")
+    player = ma.fields.Method(
+        "get_player_name_map", "set_player_name_map", dump_only=True
+    )
 
     def get_player_name_map(self, game: Game) -> Dict[str, str]:
         """Return a mapping of the assigned symbol to the player name."""
         return {X_CHAR: game.player_x.name, O_CHAR: game.player_o.name}
+
+    def set_player_name_map(self, data: Any) -> None:
+        """Do nothing when attempting to set the players after initialization."""
 
 
 @blp.route("/games")
@@ -75,6 +81,17 @@ class GameByID(MethodView):
         game = Game.query.get(game_id)
         if game is None:
             return abort(404)
+        return game
+
+    @blp.arguments(GameSchema())
+    @blp.response(200, GameSchema())
+    def post(self, data: Dict[str, Any], *, game_id: int) -> Game:
+        game = Game.query.get(game_id)
+        if game is None:
+            return abort(404)
+
+        game.state = data["state"]
+        game.save()
         return game
 
 
