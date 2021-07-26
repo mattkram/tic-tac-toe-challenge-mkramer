@@ -224,10 +224,14 @@ _possible_winning_routes.append([(2, 0), (1, 1), (0, 2)])
         for col in range(3)
     ],
 )
-def identify_winner(_: str, *cell_values: Optional[str]) -> Tuple[str, str, bool]:
+def identify_winner(url: str, *cell_values: Optional[str]) -> Tuple[str, str, bool]:
     """Observe all cell values and identify if any player has won.
 
     Trigger on page load to capture finished games."""
+    if not url.startswith("/game"):
+        # Only display alert on game page
+        return "", "", False
+
     for route in _possible_winning_routes:
         route_values = set()  # unique values in this route
         for r, c in route:
