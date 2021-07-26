@@ -63,14 +63,14 @@ class UpdateGameSchema(_GameSchemaBase):
 class Games(MethodView):
     @blp.response(200, GameSchema(many=True))
     def get(self) -> List[Game]:
-        """Return a list of Games from the database as a JSON document."""
+        """Return a list of games from the database."""
         return Game.query.all()
 
     @blp.arguments(CreateGameSchema())
     @blp.response(200, GameSchema)
     @blp.alt_response(422, ErrorSchema, description="More than two players specified")
     def post(self, data: Dict[str, List[str]]) -> Game:
-        """On POST request, create a new game.
+        """Create a new game.
 
         The POST request can receive an optional payload dictionary with form
         {"players": ["Player 1", "Player 2"]} to associate the game with known players.
@@ -91,7 +91,7 @@ class Games(MethodView):
 class GameByID(MethodView):
     @blp.response(200, GameSchema())
     def get(self, game_id: int) -> Game:
-        """Return a specific Game from the database as a JSON document."""
+        """Return a specific game from the database."""
         game = Game.query.get(game_id)
         if game is None:
             return abort(404)
@@ -103,6 +103,12 @@ class GameByID(MethodView):
         418, ErrorSchema, description="A teapot cannot process invalid moves"
     )
     def post(self, data: Dict[str, Any], *, game_id: int) -> Game:
+        """Update the state of a game.
+
+        Although the entire Game schema may be passed, the players and ID are considered
+        immutable and only the game state will be updated.
+
+        """
         game = Game.query.get(game_id)
         if game is None:
             return abort(404)
