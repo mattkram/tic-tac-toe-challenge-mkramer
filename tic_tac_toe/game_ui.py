@@ -13,6 +13,7 @@ from typing import Tuple
 
 import dash_bootstrap_components as dbc
 import dash_html_components as html
+import requests
 from dash import Dash
 from dash.dependencies import Input
 from dash.dependencies import MATCH
@@ -20,6 +21,8 @@ from dash.dependencies import Output
 from dash.dependencies import State
 from dash.exceptions import PreventUpdate
 from flask import Flask
+
+API_URL = "http://localhost:5000/api"
 
 app = Dash(
     __name__,
@@ -123,9 +126,13 @@ def handle_cell_click(
     new_cell_value = whose_move(old_cells)
     old_cells[row * 3 + col] = new_cell_value
 
-    # Convert cell value list to a string for the API
-    vals = [c if c is not None else "." for c in old_cells]
-    print("".join(vals))
+    # Convert cell value list to a string and update the game via the API
+    state = [c if c is not None else "." for c in old_cells]
+    state_str = "".join(state)
+    game_id = 1  # TODO: This needs to come from a UI element
+    response = requests.post(f"{API_URL}/games/{game_id}", json={"state": state_str})
+    if response.status_code != 200:
+        print(response.json())  # TODO: Don't let errors pass silently
 
     return new_cell_value
 
