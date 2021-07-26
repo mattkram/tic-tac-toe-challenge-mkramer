@@ -1,0 +1,9 @@
+.game-cell {
+    padding: 0;
+}
+.game-cell button {
+    background: none;
+    border: none;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+}
