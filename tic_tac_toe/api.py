@@ -8,6 +8,7 @@ from flask import Flask
 from flask.views import MethodView
 from flask_smorest import Api
 from flask_smorest import Blueprint
+from flask_smorest.error_handler import ErrorSchema
 
 from tic_tac_toe.db import Game
 
@@ -67,6 +68,7 @@ class Games(MethodView):
 
     @blp.arguments(CreateGameSchema())
     @blp.response(200, GameSchema)
+    @blp.alt_response(422, ErrorSchema, description="More than two players specified")
     def post(self, data: Dict[str, List[str]]) -> Game:
         """On POST request, create a new game.
 
@@ -97,6 +99,9 @@ class GameByID(MethodView):
 
     @blp.arguments(UpdateGameSchema())
     @blp.response(200, GameSchema())
+    @blp.alt_response(
+        418, ErrorSchema, description="A teapot cannot process invalid moves"
+    )
     def post(self, data: Dict[str, Any], *, game_id: int) -> Game:
         game = Game.query.get(game_id)
         if game is None:
