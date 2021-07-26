@@ -6,8 +6,10 @@ for data transfer instead of direct database interaction as would be more typica
 """
 from pathlib import Path
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 import dash_bootstrap_components as dbc
 import dash_html_components as html
@@ -81,24 +83,37 @@ app.layout = html.Div(
             dbc.Row(dbc.Col(make_board(), width=dict(size=6, offset=3))),
             style={"margin-top": "30px"},
         ),
-        html.Div(id="winner"),
+        dbc.Alert(id="winner-alert", color="success", is_open=False),
     ]
 )
+
+
+def whose_move(cells: List[Optional[str]]) -> str:
+    """Return X or O, depending on how many previous moves are on the board."""
+    num_prev_moves = sum(v is not None for v in cells)
+    if num_prev_moves % 2 == 0:
+        return "X"
+    else:
+        return "O"
 
 
 @app.callback(
     Output({"type": "cell", "index": MATCH}, "children"),
     Input({"type": "cell", "index": MATCH}, "n_clicks"),
     State({"type": "cell", "index": MATCH}, "children"),
+    State({"type": "cell", "index": MATCH}, "id"),
     *[
         State({"type": "cell", "index": f"{row},{col}"}, "children")
         for row in range(3)
         for col in range(3)
     ],
-    State("winner", "children"),
+    State("winner-alert", "children"),
 )
 def handle_cell_click(
-    n_clicks: Optional[int], old_state: Optional[str], *args: Any
+    n_clicks: Optional[int],
+    old_state: Optional[str],
+    cell_id: Dict[str, str],
+    *args: Any,
 ) -> str:
     """Set the value of a cell when it is clicked.
 
@@ -110,22 +125,31 @@ def handle_cell_click(
     if winner is not None or old_state is not None or n_clicks is None:
         raise PreventUpdate
 
-    num_prev_moves = sum(v is not None for v in old_cells)
-    if num_prev_moves % 2 == 0:
-        return "X"
-    else:
-        return "O"
+    # Extract the row and column from the "row,col" string in the index
+    row, col = [int(val) for val in cell_id["index"].split(",")]
+
+    # Decide whose move and replace the value in that cell
+    new_cell_value = whose_move(old_cells)
+    old_cells[row * 3 + col] = new_cell_value
+
+    # Convert cell value list to a string for the API
+    vals = [c if c is not None else "." for c in old_cells]
+    print("".join(vals))
+
+    return new_cell_value
 
 
 @app.callback(
-    Output("winner", "children"),
+    Output("winner-alert", "children"),
+    Output("winner-alert", "color"),
+    Output("winner-alert", "is_open"),
     *[
         Input({"type": "cell", "index": f"{row},{col}"}, "children")
         for row in range(3)
         for col in range(3)
     ],
 )
-def identify_winner(*cell_values: Optional[str]) -> Optional[str]:
+def identify_winner(*cell_values: Optional[str]) -> Tuple[str, str, bool]:
     """Observe all cell values and identify if any player has won."""
     for route in WINNING_ROUTES:
         route_values = set()
@@ -133,10 +157,14 @@ def identify_winner(*cell_values: Optional[str]) -> Optional[str]:
             route_values.add(cell_values[r * 3 + c])
 
         if len(route_values) == 1:
-            winner = route_values.pop()
+            (winner,) = route_values
             if winner is not None:
-                return f"{winner} has won!"
-    return None
+                return f"{winner} has won!", "success", True
+
+    if all(v is not None for v in cell_values):
+        return "Draw", "warning", True
+
+    raise PreventUpdate
 
 
 def init_app(server: Flask) -> None:
