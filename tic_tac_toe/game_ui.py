@@ -21,15 +21,6 @@ from dash.dependencies import State
 from dash.exceptions import PreventUpdate
 from flask import Flask
 
-# A list of the indices of all routes that can win the game
-WINNING_ROUTES = []
-for i in range(3):
-    WINNING_ROUTES.append([(i, j) for j in range(3)])
-    WINNING_ROUTES.append([(j, i) for j in range(3)])
-WINNING_ROUTES.append([(0, 0), (1, 1), (2, 2)])
-WINNING_ROUTES.append([(2, 0), (1, 1), (0, 2)])
-
-
 app = Dash(
     __name__,
     title="Tic-Tac-Toe",
@@ -139,6 +130,17 @@ def handle_cell_click(
     return new_cell_value
 
 
+# A list of the indices of all routes that can win the game
+# It is a list of lists, where the indices of the three cells in that route are stored
+# Value cached here so it is only calculated once during import
+_possible_winning_routes = []
+for i in range(3):
+    _possible_winning_routes.append([(i, j) for j in range(3)])
+    _possible_winning_routes.append([(j, i) for j in range(3)])
+_possible_winning_routes.append([(0, 0), (1, 1), (2, 2)])
+_possible_winning_routes.append([(2, 0), (1, 1), (0, 2)])
+
+
 @app.callback(
     Output("winner-alert", "children"),
     Output("winner-alert", "color"),
@@ -151,12 +153,13 @@ def handle_cell_click(
 )
 def identify_winner(*cell_values: Optional[str]) -> Tuple[str, str, bool]:
     """Observe all cell values and identify if any player has won."""
-    for route in WINNING_ROUTES:
-        route_values = set()
+    for route in _possible_winning_routes:
+        route_values = set()  # unique values in this route
         for r, c in route:
             route_values.add(cell_values[r * 3 + c])
 
         if len(route_values) == 1:
+            # If only one unique value is not None, that is the winner
             (winner,) = route_values
             if winner is not None:
                 return f"{winner} has won!", "success", True
