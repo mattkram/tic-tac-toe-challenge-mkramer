@@ -4,13 +4,16 @@ Although not the most ideal use of a framework like Dash, the front-end will uti
 for data transfer instead of direct database interaction as would be more typical.
 
 """
+import re
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
 
 import dash_bootstrap_components as dbc
+import dash_core_components as dcc
 import dash_html_components as html
 import requests
 from dash import Dash
@@ -41,6 +44,7 @@ navbar = dbc.NavbarSimple(
     ],
     brand="Tic-Tac-Toe",
     color="secondary",
+    brand_href="/",
     dark=True,
 )
 
@@ -72,13 +76,59 @@ def make_board() -> List[dbc.Row]:
 app.layout = html.Div(
     [
         navbar,
+        dbc.Alert(id="winner-alert", color="success", is_open=False),
         dbc.Container(
-            dbc.Row(dbc.Col(make_board(), width=dict(size=6, offset=3))),
+            [
+                dbc.Row(
+                    dbc.Col(
+                        dbc.Button(
+                            "New Game", id="new-game-button", style={"width": "100%"}
+                        ),
+                        width=dict(size=4, offset=4),
+                        style={"margin-bottom": "20px"},
+                    )
+                ),
+                dbc.Row(dbc.Col(id="board-container", width=dict(size=6, offset=3))),
+            ],
             style={"margin-top": "30px"},
         ),
-        dbc.Alert(id="winner-alert", color="success", is_open=False),
+        dcc.Location(id="url"),
     ]
 )
+
+
+@app.callback(
+    Output("url", "pathname"),
+    Input("new-game-button", "n_clicks"),
+)
+def create_new_game(n_clicks: Optional[int]) -> str:
+    """When the "New Game" button is clicked, create a new game in the database and route to that
+    game in the UI.
+    """
+    if n_clicks is None:
+        raise PreventUpdate
+
+    # Get a new game from the API
+    response = requests.post(f"{API_URL}/games")
+    # TODO: Should handle bad responses somehow
+    game_data = response.json()
+    return f"/game/{game_data['id']}"
+
+
+@app.callback(
+    Output("board-container", "children"),
+    Input("url", "pathname"),
+)
+def display_game(url: str) -> Any:
+    """When the /game/<number> endpoint is hit, display the game board"""
+    m = re.match(r"/game/(\d+)", url)
+    if m is None:
+        return None
+
+    # TODO: Try to get that game's state and fill the board with it if the game exists
+    game_id = m.group(1)  # noqa: F841, temporary
+
+    return make_board()
 
 
 def whose_move(cells: List[Optional[str]]) -> str:
