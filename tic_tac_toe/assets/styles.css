@@ -1,6 +1,7 @@
 .game-cell {
     padding: 0;
 }
+
 .game-cell button {
     background: none;
     border: none;
@@ -12,4 +13,8 @@
 
 #winner-alert {
     text-align: center;
+}
+
+p {
+    margin: 0;
 }

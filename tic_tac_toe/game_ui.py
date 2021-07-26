@@ -10,11 +10,13 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_table
 import requests
 from dash import Dash
 from dash.dependencies import Input
@@ -35,7 +37,8 @@ app = Dash(
 
 navbar = dbc.NavbarSimple(
     children=[
-        dbc.NavItem(dbc.NavLink("game", href="/")),
+        dbc.NavItem(dbc.NavLink("play", href="/")),
+        dbc.NavItem(dbc.NavLink("stats", href="/games")),
         dbc.NavItem(
             dbc.NavLink(
                 "api docs", href="/api/docs", target="_blank", external_link=True
@@ -126,6 +129,46 @@ def create_new_game(n_clicks: Optional[int]) -> str:
     return f"/game/{game_data['id']}"
 
 
+def make_stats_table() -> Any:
+    """Generate a table of game stats via a GET request to `/api/games`."""
+    response = requests.get(f"{API_URL}/games")
+    if response.status_code != 200:
+        return "Error generating stats table"
+
+    data = response.json()
+
+    # Form a new data dictionary in the right format for the table, don't include incomplete games
+    new_data = []
+    for game_dict in data:
+        state = game_dict["state"]
+        winner = determine_winner([s if s != "." else None for s in state])
+        if winner is not None:
+            # Don't include incomplete games
+            new_data.append(
+                {
+                    "id": game_dict["id"],
+                    "player_x": game_dict["player"]["X"],
+                    "player_o": game_dict["player"]["O"],
+                    "state": state,
+                    "winner": winner,
+                    "url": f"[Link](/game/{game_dict['id']})",
+                }
+            )
+    new_data.sort(key=lambda game: game["id"], reverse=True)
+
+    return dash_table.DataTable(
+        columns=[
+            {"name": "ID", "id": "id"},
+            {"name": "X", "id": "player_x"},
+            {"name": "O", "id": "player_o"},
+            {"name": "Board", "id": "state"},
+            {"name": "Winner", "id": "winner"},
+            {"name": "", "id": "url", "presentation": "markdown"},
+        ],
+        data=new_data,
+    )
+
+
 @app.callback(
     Output("board-container", "children"),
     Output("game-id", "children"),
@@ -133,8 +176,12 @@ def create_new_game(n_clicks: Optional[int]) -> str:
 )
 def display_game(url: str) -> Tuple[Any, Optional[str]]:
     """When the /game/<number> endpoint is hit, display the game board"""
+    if url == "/games":
+        return make_stats_table(), None
+
     m = re.match(r"/game/(\d+)", url)
     if m is None:
+        # Don't display the board, "New Game" button only will be there
         return None, None
 
     # Try to get an existing game's state and fill the board with it if the game exists
@@ -213,6 +260,32 @@ _possible_winning_routes.append([(0, 0), (1, 1), (2, 2)])
 _possible_winning_routes.append([(2, 0), (1, 1), (0, 2)])
 
 
+def determine_winner(cell_values: Sequence[Optional[str]]) -> Optional[str]:
+    """Determine whether there is winner, or if the game is a draw.
+
+    Potential results are:
+        * "X", "O": if either is the winner
+        * "Draw": if game is a draw
+        * None: if game is still ongoing
+
+    """
+    for route in _possible_winning_routes:
+        route_values = set()  # unique values in this route
+        for r, c in route:
+            route_values.add(cell_values[r * 3 + c])
+
+        if len(route_values) == 1:
+            # If only one unique value is not None, that is the winner
+            (winner,) = route_values
+            if winner is not None:
+                return winner
+
+    if all(v is not None for v in cell_values):
+        return "Draw"
+
+    return None
+
+
 @app.callback(
     Output("winner-alert", "children"),
     Output("winner-alert", "color"),
@@ -232,19 +305,11 @@ def identify_winner(url: str, *cell_values: Optional[str]) -> Tuple[str, str, bo
         # Only display alert on game page
         return "", "", False
 
-    for route in _possible_winning_routes:
-        route_values = set()  # unique values in this route
-        for r, c in route:
-            route_values.add(cell_values[r * 3 + c])
-
-        if len(route_values) == 1:
-            # If only one unique value is not None, that is the winner
-            (winner,) = route_values
-            if winner is not None:
-                return f"{winner} has won!", "success", True
-
-    if all(v is not None for v in cell_values):
+    winner = determine_winner(cell_values)
+    if winner == "Draw":
         return "Draw", "warning", True
+    elif winner is not None:
+        return f"{winner} has won!", "success", True
 
     raise PreventUpdate
 
