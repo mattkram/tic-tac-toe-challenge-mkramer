@@ -4,6 +4,7 @@ Although not the most ideal use of a framework like Dash, the front-end will uti
 for data transfer instead of direct database interaction as would be more typical.
 
 """
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -26,7 +27,7 @@ from dash.dependencies import State
 from dash.exceptions import PreventUpdate
 from flask import Flask
 
-API_URL = "http://localhost:5000/api"
+API_URL = os.getenv("API_BASE_URL", "http://localhost:5000/api")
 
 app = Dash(
     __name__,
