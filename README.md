@@ -1,3 +1,62 @@
+# How to install and run the code
+
+## Installation
+
+I have used `poetry` for dependency specification, but also exported to `requirements.txt` for portability.
+
+1. Set up a virtual environment (I wrote the code using Python 3.8):
+
+  `python3 -m venv venv`
+
+2. Activate the virtual environment (assuming MacOS):
+
+  `. venv/bin/activate`
+
+3. Install dependencies:
+
+  `pip install -r requirements.txt`
+
+## Run the application
+
+The application is written using `flask` and I have included a script to launch:
+
+`python app.py`
+
+This will launch a development server at `http://localhost:5000`
+
+# Design Notes
+
+I chose to implement the API using `flask`, `flask-sqlalchemy`, and `flask-smorest`.
+This is primarily due to my familiarity.
+The API docs are at `/api/docs`.
+
+Additionally, I was unsure of whether the task included the UI or not, so I spun up a simple  `Dash` app.
+One of the challenges with `Dash` is that it can get a bit messy and I usually end up refactoring
+and building my own abstractions when things get complex (as in with multiple pages, etc.).
+I was able to build a fun little application which allows gameplay, and also display of historical statistics.
+With a bit more time, this part of the code could definitely use some refactoring.
+
+After coding against the API, I would likely re-visit my choice of data type for representing the board state.
+While a string is convenient for database storage, I would likely replace the API schema to represent the board as a list of strings, or as a more grid-like structure.
+This would make consumption easier, and conversion between the string and the list would be handled with a custom serializer.
+
+I also had thoughts of being clever to minimize database storage volume, but felt it would be a bit obscure and not very readable.
+In any case, two potential ideas come to mind, both involving storing the board state as an integer and using bit-wise operations:
+
+1. We have three states, 0, 1, 2 representing `NULL`, `X`, `O`.
+   We could represent these in binary using two bits: `0b00`, `0b01`, `0b10`.
+   Thus, you could represent the nine cells using 18 bits and extract the values using bit masking.
+   For this, you'd need a 32-bit integer, as a 16-bit integer is too small.
+2. However, since there are only three states, and since `3^9 < 2^16`, you could actually represent the board using a 16 bit integer by interpreting it as base 3.
+   Unfortunately (since it'd be fun), despite the marginal savings in storage, both of these options
+   are likely to anger your stakeholders (and colleagues), and should be avoided at all costs!
+
+Thanks for the fun challenge! -MRK
+
+P.S. This work is original, assuming reading package API docs is okay.
+In any case, I hope you get a sense for my style and capabilities.
+I am definitely interested in building my skills up further in this area.
+
 # Anaconda: Tic-Tac-Toe Coding Challenge
 Your mission, should you choose to accept it, is to implement a two-player game of Tic-tac-toe in the web browser.
 
