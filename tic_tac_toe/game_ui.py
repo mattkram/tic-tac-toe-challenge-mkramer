@@ -5,10 +5,16 @@ for data transfer instead of direct database interaction as would be more typica
 
 """
 from pathlib import Path
+from typing import Optional
 
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash import Dash
+from dash.dependencies import Input
+from dash.dependencies import MATCH
+from dash.dependencies import Output
+from dash.dependencies import State
+from dash.exceptions import PreventUpdate
 from flask import Flask
 
 app = Dash(
@@ -46,7 +52,7 @@ def make_cell(row: int, col: int) -> dbc.Col:
         classes.append("border-right")
 
     return dbc.Col(
-        dbc.Button(id=f"cell-{row}-{col}"),
+        dbc.Button(id={"type": "cell", "index": f"{row},{col}"}),
         width=4,
         className=" ".join(classes),
     )
@@ -63,6 +69,18 @@ app.layout = html.Div(
         ),
     ]
 )
+
+
+@app.callback(
+    Output({"type": "cell", "index": MATCH}, "children"),
+    Input({"type": "cell", "index": MATCH}, "n_clicks"),
+    State({"type": "cell", "index": MATCH}, "children"),
+)
+def handle_cell_click(n_clicks: Optional[int], old_state: Optional[str]) -> str:
+    """Set the value of a cell when it is clicked."""
+    if old_state is not None:
+        raise PreventUpdate
+    return str(n_clicks)
 
 
 def init_app(server: Flask) -> None:
