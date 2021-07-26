@@ -7,8 +7,10 @@ from typing import List
 from flask import Flask
 from flask_sqlalchemy import Model
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import OperationalError
 
 # String constants to represent player X, player O, and empty cell
+
 X_CHAR = "X"
 O_CHAR = "O"
 NULL_CHAR = "."
@@ -146,4 +148,7 @@ def init_app(app: Flask) -> None:
     """Initialize the database and ensure all tables are created."""
     db.init_app(app)
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except OperationalError:
+            pass
