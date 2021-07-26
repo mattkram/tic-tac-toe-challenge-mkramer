@@ -19,10 +19,6 @@ def create_app(config: Dict[str, Any] = None) -> Flask:
     if config is not None:
         app.config.from_mapping(config)
 
-    @app.route("/")
-    def index() -> str:
-        return "Hello"
-
     from . import db
 
     db.init_app(app)
@@ -30,5 +26,9 @@ def create_app(config: Dict[str, Any] = None) -> Flask:
     from . import api
 
     api.init_app(app)
+
+    from . import game_ui
+
+    game_ui.init_app(app)
 
     return app
