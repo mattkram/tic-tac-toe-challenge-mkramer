@@ -5,6 +5,7 @@ for data transfer instead of direct database interaction as would be more typica
 
 """
 from pathlib import Path
+from typing import Any
 from typing import Optional
 
 import dash_bootstrap_components as dbc
@@ -16,6 +17,15 @@ from dash.dependencies import Output
 from dash.dependencies import State
 from dash.exceptions import PreventUpdate
 from flask import Flask
+
+# A list of the indices of all routes that can win the game
+WINNING_ROUTES = []
+for i in range(3):
+    WINNING_ROUTES.append([(i, j) for j in range(3)])
+    WINNING_ROUTES.append([(j, i) for j in range(3)])
+WINNING_ROUTES.append([(0, 0), (1, 1), (2, 2)])
+WINNING_ROUTES.append([(2, 0), (1, 1), (0, 2)])
+
 
 app = Dash(
     __name__,
@@ -67,6 +77,7 @@ app.layout = html.Div(
             dbc.Row(dbc.Col(board, width=dict(size=6, offset=3))),
             style={"margin-top": "30px"},
         ),
+        html.Div(id="winner"),
     ]
 )
 
@@ -80,16 +91,19 @@ app.layout = html.Div(
         for row in range(3)
         for col in range(3)
     ],
+    State("winner", "children"),
 )
 def handle_cell_click(
-    n_clicks: Optional[int], old_state: Optional[str], *old_cells: Optional[str]
+    n_clicks: Optional[int], old_state: Optional[str], *args: Any
 ) -> str:
     """Set the value of a cell when it is clicked.
 
     The X or O value is derived by observing the current state of the board.
 
     """
-    if old_state is not None or n_clicks is None:
+    *old_cells, winner = args
+
+    if winner is not None or old_state is not None or n_clicks is None:
         raise PreventUpdate
 
     num_prev_moves = sum(v is not None for v in old_cells)
@@ -97,6 +111,28 @@ def handle_cell_click(
         return "X"
     else:
         return "O"
+
+
+@app.callback(
+    Output("winner", "children"),
+    *[
+        Input({"type": "cell", "index": f"{row},{col}"}, "children")
+        for row in range(3)
+        for col in range(3)
+    ],
+)
+def identify_winner(*cell_values: Optional[str]) -> Optional[str]:
+    """Observe all cell values and identify if any player has won."""
+    for route in WINNING_ROUTES:
+        route_values = set()
+        for r, c in route:
+            route_values.add(cell_values[r * 3 + c])
+
+        if len(route_values) == 1:
+            winner = route_values.pop()
+            if winner is not None:
+                return f"{winner} has won!"
+    return None
 
 
 def init_app(server: Flask) -> None:
