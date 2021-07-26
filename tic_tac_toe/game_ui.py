@@ -78,7 +78,7 @@ app.layout = html.Div(
 )
 def handle_cell_click(n_clicks: Optional[int], old_state: Optional[str]) -> str:
     """Set the value of a cell when it is clicked."""
-    if old_state is not None:
+    if old_state is not None or n_clicks is None:
         raise PreventUpdate
     return str(n_clicks)
 
