@@ -5,7 +5,6 @@ for data transfer instead of direct database interaction as would be more typica
 
 """
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -96,25 +95,25 @@ def whose_move(cells: List[Optional[str]]) -> str:
     Input({"type": "cell", "index": MATCH}, "n_clicks"),
     State({"type": "cell", "index": MATCH}, "children"),
     State({"type": "cell", "index": MATCH}, "id"),
+    State("winner-alert", "children"),
     *[
         State({"type": "cell", "index": f"{row},{col}"}, "children")
         for row in range(3)
         for col in range(3)
     ],
-    State("winner-alert", "children"),
 )
 def handle_cell_click(
     n_clicks: Optional[int],
     old_state: Optional[str],
     cell_id: Dict[str, str],
-    *args: Any,
+    winner: Optional[str],
+    *old_cells: Optional[str],
 ) -> str:
     """Set the value of a cell when it is clicked.
 
     The X or O value is derived by observing the current state of the board.
 
     """
-    *old_cells, winner = args
 
     if winner is not None or old_state is not None or n_clicks is None:
         raise PreventUpdate
@@ -123,11 +122,12 @@ def handle_cell_click(
     row, col = [int(val) for val in cell_id["index"].split(",")]
 
     # Decide whose move and replace the value in that cell
-    new_cell_value = whose_move(old_cells)
-    old_cells[row * 3 + col] = new_cell_value
+    cells = list(old_cells)  # make a copy and ensure a mutable list
+    new_cell_value = whose_move(cells)
+    cells[row * 3 + col] = new_cell_value
 
     # Convert cell value list to a string and update the game via the API
-    state = [c if c is not None else "." for c in old_cells]
+    state = [c if c is not None else "." for c in cells]
     state_str = "".join(state)
     game_id = 1  # TODO: This needs to come from a UI element
     response = requests.post(f"{API_URL}/games/{game_id}", json={"state": state_str})
