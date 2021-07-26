@@ -49,7 +49,7 @@ navbar = dbc.NavbarSimple(
 )
 
 
-def make_cell(row: int, col: int) -> dbc.Col:
+def make_cell(row: int, col: int, value: str = None) -> dbc.Col:
     """Create a cell, with appropriate borders"""
     classes = ["game-cell"]
     if row > 0:
@@ -62,15 +62,25 @@ def make_cell(row: int, col: int) -> dbc.Col:
         classes.append("border-right")
 
     return dbc.Col(
-        dbc.Button(id={"type": "cell", "index": f"{row},{col}"}),
+        dbc.Button(value, id={"type": "cell", "index": f"{row},{col}"}),
         width=4,
         className=" ".join(classes),
     )
 
 
-def make_board() -> List[dbc.Row]:
+def make_board(state: str) -> List[dbc.Row]:
     """Create a list of lists containing the game cells."""
-    return [dbc.Row([make_cell(row, col) for col in range(3)]) for row in range(3)]
+    rows = []
+    for row in range(3):
+        cells = []
+        for col in range(3):
+            value: Optional[str] = state[row * 3 + col]
+            if value == ".":
+                value = None
+            cell = make_cell(row, col, value=value)
+            cells.append(cell)
+        rows.append(dbc.Row(cells))
+    return rows
 
 
 app.layout = html.Div(
@@ -93,6 +103,7 @@ app.layout = html.Div(
             style={"margin-top": "30px"},
         ),
         dcc.Location(id="url"),
+        html.Div(id="game-id", style={"display": "none"}),
     ]
 )
 
@@ -117,18 +128,21 @@ def create_new_game(n_clicks: Optional[int]) -> str:
 
 @app.callback(
     Output("board-container", "children"),
+    Output("game-id", "children"),
     Input("url", "pathname"),
 )
-def display_game(url: str) -> Any:
+def display_game(url: str) -> Tuple[Any, Optional[str]]:
     """When the /game/<number> endpoint is hit, display the game board"""
     m = re.match(r"/game/(\d+)", url)
     if m is None:
-        return None
+        return None, None
 
-    # TODO: Try to get that game's state and fill the board with it if the game exists
-    game_id = m.group(1)  # noqa: F841, temporary
+    # Try to get an existing game's state and fill the board with it if the game exists
+    game_id = m.group(1)
+    response = requests.get(f"{API_URL}/games/{game_id}")
+    state = response.json().get("state", "." * 9)
 
-    return make_board()
+    return make_board(state), game_id
 
 
 def whose_move(cells: List[Optional[str]]) -> str:
@@ -146,6 +160,7 @@ def whose_move(cells: List[Optional[str]]) -> str:
     State({"type": "cell", "index": MATCH}, "children"),
     State({"type": "cell", "index": MATCH}, "id"),
     State("winner-alert", "children"),
+    State("game-id", "children"),
     *[
         State({"type": "cell", "index": f"{row},{col}"}, "children")
         for row in range(3)
@@ -157,6 +172,7 @@ def handle_cell_click(
     old_state: Optional[str],
     cell_id: Dict[str, str],
     winner: Optional[str],
+    game_id: Optional[str],
     *old_cells: Optional[str],
 ) -> str:
     """Set the value of a cell when it is clicked.
@@ -179,7 +195,6 @@ def handle_cell_click(
     # Convert cell value list to a string and update the game via the API
     state = [c if c is not None else "." for c in cells]
     state_str = "".join(state)
-    game_id = 1  # TODO: This needs to come from a UI element
     response = requests.post(f"{API_URL}/games/{game_id}", json={"state": state_str})
     if response.status_code != 200:
         print(response.json())  # TODO: Don't let errors pass silently
@@ -202,14 +217,17 @@ _possible_winning_routes.append([(2, 0), (1, 1), (0, 2)])
     Output("winner-alert", "children"),
     Output("winner-alert", "color"),
     Output("winner-alert", "is_open"),
+    Input("url", "pathname"),
     *[
         Input({"type": "cell", "index": f"{row},{col}"}, "children")
         for row in range(3)
         for col in range(3)
     ],
 )
-def identify_winner(*cell_values: Optional[str]) -> Tuple[str, str, bool]:
-    """Observe all cell values and identify if any player has won."""
+def identify_winner(_: str, *cell_values: Optional[str]) -> Tuple[str, str, bool]:
+    """Observe all cell values and identify if any player has won.
+
+    Trigger on page load to capture finished games."""
     for route in _possible_winning_routes:
         route_values = set()  # unique values in this route
         for r, c in route:
