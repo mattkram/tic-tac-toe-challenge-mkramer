@@ -6,6 +6,7 @@ for data transfer instead of direct database interaction as would be more typica
 """
 from pathlib import Path
 from typing import Any
+from typing import List
 from typing import Optional
 
 import dash_bootstrap_components as dbc
@@ -68,13 +69,16 @@ def make_cell(row: int, col: int) -> dbc.Col:
     )
 
 
-board = [dbc.Row([make_cell(row, col) for col in range(3)]) for row in range(3)]
+def make_board() -> List[dbc.Row]:
+    """Create a list of lists containing the game cells."""
+    return [dbc.Row([make_cell(row, col) for col in range(3)]) for row in range(3)]
+
 
 app.layout = html.Div(
     [
         navbar,
         dbc.Container(
-            dbc.Row(dbc.Col(board, width=dict(size=6, offset=3))),
+            dbc.Row(dbc.Col(make_board(), width=dict(size=6, offset=3))),
             style={"margin-top": "30px"},
         ),
         html.Div(id="winner"),
