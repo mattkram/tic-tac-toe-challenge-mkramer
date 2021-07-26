@@ -75,12 +75,28 @@ app.layout = html.Div(
     Output({"type": "cell", "index": MATCH}, "children"),
     Input({"type": "cell", "index": MATCH}, "n_clicks"),
     State({"type": "cell", "index": MATCH}, "children"),
+    *[
+        State({"type": "cell", "index": f"{row},{col}"}, "children")
+        for row in range(3)
+        for col in range(3)
+    ],
 )
-def handle_cell_click(n_clicks: Optional[int], old_state: Optional[str]) -> str:
-    """Set the value of a cell when it is clicked."""
+def handle_cell_click(
+    n_clicks: Optional[int], old_state: Optional[str], *old_cells: Optional[str]
+) -> str:
+    """Set the value of a cell when it is clicked.
+
+    The X or O value is derived by observing the current state of the board.
+
+    """
     if old_state is not None or n_clicks is None:
         raise PreventUpdate
-    return str(n_clicks)
+
+    num_prev_moves = sum(v is not None for v in old_cells)
+    if num_prev_moves % 2 == 0:
+        return "X"
+    else:
+        return "O"
 
 
 def init_app(server: Flask) -> None:
